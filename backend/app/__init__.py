@@ -4,9 +4,8 @@ from datetime import timedelta
 import os
 import sys
 from dotenv import load_dotenv
-from app.services.extenstions import db, bcrypt, jwt, limiter
+from app.services.extenstions import db, bcrypt, jwt, limiter, csrf
 from flask_migrate import Migrate
-from flask_wtf.csrf import CSRFProtect
 from app.models.TokenBlackList import TokenBlocklist
 
 # Load environment
@@ -14,7 +13,6 @@ FLASK_ENV = os.getenv("FLASK_ENV", "development")
 load_dotenv(f".env.{FLASK_ENV}")
 
 migrate = Migrate()
-csrf = CSRFProtect()
 
 def create_app():
     app = Flask(__name__)
@@ -53,8 +51,8 @@ def create_app():
         allowed_origins = [
             "http://localhost:5173",
             "http://localhost:5174",
-            "http://127.0.0.1:5173"
-            "http://127.0.0.1:5174"
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:5174",
         ]
 
     # Validate env variables

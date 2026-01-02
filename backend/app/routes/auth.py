@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, make_response
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, JWTManager, get_jwt, get_jti, set_access_cookies, set_refresh_cookies
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt, get_jti, set_access_cookies, set_refresh_cookies
 from app import db, bcrypt
 from app.models.User import User
 from app.models.TokenBlackList import TokenBlocklist
@@ -7,6 +7,9 @@ import re
 from flask_wtf.csrf import generate_csrf
 from app.services.extenstions import limiter
 from app.models.RefreshToken import RefreshToken
+from flask_wtf.csrf import generate_csrf
+from app.services.extenstions import limiter, csrf
+
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -41,7 +44,8 @@ def get_csrf_token():
     return response
 
 @auth_bp.route('/register', methods=['POST'])
-@limiter.limit("5 per hour")
+@limiter.limit("10 per hour")
+@csrf.exempt
 def register():
     try:
         data = request.get_json()
@@ -101,7 +105,8 @@ def register():
         return jsonify({'error': 'Registration failed'}), 500
     
 @auth_bp.route('/login', methods=['POST'])
-@limiter.limit("5 per hour")
+@limiter.limit("10 per hour")
+@csrf.exempt
 def login():
     try:
         data = request.get_json()
@@ -143,7 +148,8 @@ def login():
         return jsonify({'error': 'Login failed'}), 500
 
 @auth_bp.route('/refresh', methods=['POST'])
-@limiter.limit("5 per hour")
+@limiter.limit("10 per hour")
+@csrf.exempt
 @jwt_required(refresh=True)
 def refresh():
     try:
@@ -183,6 +189,7 @@ def refresh():
 
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
+@csrf.exempt
 def get_current_user():
     try:
         current_user_id = get_jwt_identity()
@@ -198,6 +205,7 @@ def get_current_user():
 
 @auth_bp.route('/change-password', methods=['POST'])
 @jwt_required()
+@csrf.exempt
 def change_password():
     try:
         current_user_id = get_jwt_identity()
@@ -228,6 +236,7 @@ def change_password():
 
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required(verify_type=False)
+@csrf.exempt
 def logout():
     try:
         jti = get_jwt()["jti"]
