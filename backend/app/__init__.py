@@ -75,6 +75,13 @@ def create_app():
     @app.route('/api/')
     def api_health_check():
         return {'status': 'API is running', 'version': '1.0'}, 200
+    
+    @app.route('/api/debug')
+    def debug_info():
+        return {
+            'python_version': sys.version,
+            'flask_env': FLASK_ENV,
+        }, 200
 
     # Dev-only debug info
     if FLASK_ENV != "production":
