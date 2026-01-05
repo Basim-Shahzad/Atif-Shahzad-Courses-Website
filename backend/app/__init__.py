@@ -35,7 +35,7 @@ def create_app():
     # Environment-specific security
     if FLASK_ENV == "production":
         app.config['JWT_COOKIE_SECURE'] = True
-        app.config['JWT_COOKIE_SAMESITE'] = 'None'
+        app.config['JWT_COOKIE_SAMESITE'] = True
         app.config['SESSION_COOKIE_DOMAIN'] = ".dratifshahzad.com"
         app.config['SESSION_COOKIE_SECURE'] = True
         allowed_origins = [
@@ -85,8 +85,8 @@ def create_app():
 
     # Dev-only debug info
     if FLASK_ENV != "production":
-        @app.route('/api/debug')
-        def debug_info():
+        @app.route('/api/debug/dev')
+        def debug_info_dev():
             return {
                 'python_version': sys.version,
                 'flask_env': FLASK_ENV,
