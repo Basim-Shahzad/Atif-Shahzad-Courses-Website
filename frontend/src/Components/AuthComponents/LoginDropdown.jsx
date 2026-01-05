@@ -111,10 +111,7 @@ const LoginDropdown = (props) => {
                Not a member?
                <button
                   className="font-semibold text-green-700 hover:text-green-800 transition-colors duration-200 hover:underline cursor-pointer bg-transparent border-none p-0"
-                  onClick={() => {
-                     e.stopPropagation();
-                     props.inverseDropdownshow();
-                  }}>
+                  onClick={() => props.openSignup()}>
                   Create an Account
                </button>
             </p>

@@ -25,14 +25,15 @@ const Navbar = () => {
       setShowLoginDropdown((prev) => !prev);
       setShowSignupDropdown(false);
    };
-   const toggleSignup = () => {
-      setShowSignupDropdown((prev) => !prev);
+
+   const showSignupFromLogin = () => {
       setShowLoginDropdown(false);
+      setShowSignupDropdown(true);
    };
 
-   const inverseDropdownshow = () => {
-      setShowLoginDropdown((prev) => !prev);
-      setShowSignupDropdown((prev) => !prev);
+   const showLoginFromSignup = () => {
+      setShowSignupDropdown(false);
+      setShowLoginDropdown(true);
    };
 
    useEffect(() => {
@@ -203,18 +204,17 @@ const Navbar = () => {
             showLoginDropdown &&
             createPortal(
                <div ref={loginDropdownRef} className="fixed right-16 top-16 z-[9999] pointer-events-auto">
-                  <LoginDropdown inverseDropdownshow={inverseDropdownshow} />
+                  <LoginDropdown openSignup={showSignupFromLogin} />
                </div>,
                document.body
             )}
 
          {!user &&
             !authLoading &&
-            initializing &&
             showSignupDropdown &&
             createPortal(
                <div ref={signupDropdownRef} className="fixed right-16 top-16 z-[9999] pointer-events-auto">
-                  <SignupDropdown inverseDropdownshow={inverseDropdownshow} />
+                  <SignupDropdown openLogin={showLoginFromSignup} />
                </div>,
                document.body
             )}
