@@ -210,6 +210,7 @@ const Navbar = () => {
             )}
 
          {!user &&
+            !authLoading &&
             showSignupDropdown &&
             createPortal(
                <div ref={signupDropdownRef} className="fixed right-16 top-16 z-[9999] pointer-events-auto">
