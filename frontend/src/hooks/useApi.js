@@ -19,29 +19,44 @@ export const useApi = () => {
          timeout: 15000,
       });
 
-      instance.defaults.xsrfCookieName = "csrf_access_token";
-      instance.defaults.xsrfHeaderName = "X-CSRF-TOKEN";
+      // ✅ Helper function to get cookie value
+      const getCookie = (name) => {
+         const value = `; ${document.cookie}`;
+         const parts = value.split(`; ${name}=`);
+         if (parts.length === 2) return parts.pop().split(";").shift();
+         return null;
+      };
 
-      // ✅ FIXED: Only log unexpected errors in development
+      // ✅ Request interceptor: automatically add CSRF token from cookie
+      instance.interceptors.request.use((config) => {
+         // Only add CSRF token for state-changing methods
+         if (["post", "put", "patch", "delete"].includes(config.method?.toLowerCase())) {
+            const csrfToken = getCookie("csrf_access_token");
+            if (csrfToken) {
+               config.headers["X-CSRF-TOKEN"] = csrfToken;
+            }
+         }
+
+         // if (isDevelopment && isDebugEnabled) {
+         //    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+         // }
+
+         return config;
+      });
+
+      // ✅ Response interceptor for debugging
       if (isDevelopment && isDebugEnabled) {
-         instance.interceptors.request.use((config) => {
-            console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
-            return config;
-         });
-
          instance.interceptors.response.use(
             (response) => {
                return response;
             },
             (error) => {
-               // ✅ DON'T log expected 401 errors (user not logged in)
                const is401 = error.response?.status === 401;
                const isNetworkError = error.code === "ERR_NETWORK" || error.code === "ECONNREFUSED";
 
                if (isNetworkError) {
                   console.warn(`[API] Cannot reach backend at ${error.config?.url}. Is the server running?`);
                } else if (!is401) {
-                  // Only log non-401 errors (401 is expected when not logged in)
                   console.error(
                      `[API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
                      error.response?.status,
@@ -53,7 +68,7 @@ export const useApi = () => {
          );
       }
 
-      // ✅ CSRF token retry interceptor (unchanged)
+      // ✅ CSRF token retry interceptor
       instance.interceptors.response.use(
          (response) => response,
          async (error) => {
@@ -66,13 +81,11 @@ export const useApi = () => {
                originalRequest._csrfRetry = true;
 
                try {
-                  const csrfRes = await instance.get("/csrf-token");
-                  const token = csrfRes?.data?.csrfToken;
-
-                  if (token) {
-                     instance.defaults.headers.common["X-CSRF-TOKEN"] = token;
-                     instance.defaults.headers.common["X-XSRF-TOKEN"] = token;
-                     instance.defaults.headers.common["X-CSRFToken"] = token;
+                  await instance.get("/csrf-token");
+                  // Token is now in cookie, next request will pick it up
+                  const newToken = getCookie("csrf_access_token");
+                  if (newToken) {
+                     originalRequest.headers["X-CSRF-TOKEN"] = newToken;
                      return instance(originalRequest);
                   }
                } catch (csrfError) {

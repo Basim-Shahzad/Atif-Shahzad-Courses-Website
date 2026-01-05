@@ -7,12 +7,11 @@ export const ResearchContext = createContext();
 
 export const ResearchContextProvider = ({ children }) => {
    let api = useApi();
-   const { isInitialized } = useAuth();
+   const { initializing } = useAuth();
 
    const fetchResearches = async () => {
       const response = await api.get("/orcid/researches");
       if (response.data.success) {
-         console.log(response.data.researches)
          return response.data.researches;
       } else {
          console.error(response.data.error);
@@ -22,7 +21,7 @@ export const ResearchContextProvider = ({ children }) => {
    const { isLoading, data, error } = useQuery({
       queryKey: ["researches"],
       queryFn: fetchResearches,
-      enabled: isInitialized,
+      enabled: initializing,
    });
 
 

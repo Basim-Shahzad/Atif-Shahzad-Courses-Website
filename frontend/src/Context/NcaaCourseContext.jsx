@@ -7,7 +7,7 @@ export const NcaaaCoursesContext = createContext();
 
 export const NcaaaCoursesContextProvider = ({ children }) => {
    const api = useApi();
-   const { isInitialized } = useAuth();
+   const { initializing } = useAuth();
 
    const fetchNcaaCourses = async () => {
       const response = await api.get("/ncaaa");
@@ -21,13 +21,13 @@ export const NcaaaCoursesContextProvider = ({ children }) => {
    const { isLoading, data, error } = useQuery({
       queryKey: ["ncaaa"],
       queryFn: fetchNcaaCourses,
-      enabled: isInitialized, // only fetch after auth initializes
+      enabled: initializing,
    });
 
    const value = {
-      ncaaCourses: data || [],
-      isLoading,
-      error,
+      ncaaaCourses: data || [],
+      ncaaaIsLoading : isLoading,
+      ncaaaError : error,
    };
 
    return <NcaaaCoursesContext.Provider value={value}>{children}</NcaaaCoursesContext.Provider>;

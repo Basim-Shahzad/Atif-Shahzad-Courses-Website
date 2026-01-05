@@ -19,6 +19,7 @@ import AdminPanelNcaaaManagement from "./Components/AdminComponents/AdminPanelNc
 import FaculityMembersManagement from "./Components/AdminComponents/FaculityMembersManagement.jsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AdminDashboard from "./Components/AdminComponents/AdminDashboard.jsx";
+import NcaaaDetailPage from "./Components/ncaaaDetailComponents/NcaaaDetailPage.jsx";
 
 const queryClient = new QueryClient();
 
@@ -35,7 +36,7 @@ const router = createBrowserRouter([
             children: [
                { index: true, element: <AdminDashboard /> },
                { path: "ncaaa-courses", element: <AdminPanelNcaaaManagement /> },
-               { path: "faculity", element: <FaculityMembersManagement /> },
+               { path: "faculty", element: <FaculityMembersManagement /> },
             ],
             element: (
                <ProtectedRoute requiredRole="admin">
@@ -44,6 +45,7 @@ const router = createBrowserRouter([
             ),
          },
          { path: "ncaaa", element: <NCAAA_Page /> },
+         { path: "ncaaa/:course_code", element: <NcaaaDetailPage /> },
          { path: "course/:course_code", element: <Course /> },
          { path: "about", element: <AboutPage /> },
       ],

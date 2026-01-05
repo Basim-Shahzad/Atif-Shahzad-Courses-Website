@@ -3,7 +3,7 @@ from datetime import datetime
 
 class Professor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    kau_id = db.Column(db.VARCHAR(7), unique=True, nullable=False) # change 'VARCHAR' to 'STRING' SQL Injection Risk in Professor Model
+    kau_id = db.Column(db.String(7), unique=True, nullable=False) # change 'VARCHAR' to 'STRING' SQL Injection Risk in Professor Model
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     is_active = db.Column(db.Boolean, default=True)

@@ -5,7 +5,7 @@ import { useNcaaa } from "../../hooks/useNcaaa";
 // has problems will fix in future
 
 const AdminDashboard = () => {
-   const { ncaaCourses, isLoading, error } = useNcaaa();
+   const { ncaaaCourses, error } = useNcaaa();
    let api = useApi();
 
    return (
@@ -20,7 +20,7 @@ const AdminDashboard = () => {
                         id="course_select"
                         className="px-2 py-1 bg-green-700 hover:bg-green-800 cursor-pointer rounded-md text-white">
                         <option value="">-- Select Course --</option>
-                        {ncaaCourses.map((course) => (
+                        {ncaaaCourses.map((course) => (
                            <option key={course.course_id} value={course.course_id}>
                               {course.course_name}
                            </option>

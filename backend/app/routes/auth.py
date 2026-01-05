@@ -1,17 +1,21 @@
 from flask import Blueprint, request, jsonify, make_response
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt, get_jti, set_access_cookies, set_refresh_cookies
+from flask_jwt_extended import (
+    create_access_token, create_refresh_token, jwt_required, 
+    get_jwt_identity, get_jwt, get_jti, set_access_cookies, set_refresh_cookies
+)
 from app import db, bcrypt
 from app.models.User import User
 from app.models.TokenBlackList import TokenBlocklist
-import re
-from flask_wtf.csrf import generate_csrf
-from app.services.extenstions import limiter
 from app.models.RefreshToken import RefreshToken
+import re
+import os
 from flask_wtf.csrf import generate_csrf
 from app.services.extenstions import limiter, csrf
 
-
 auth_bp = Blueprint('auth', __name__)
+
+# Get environment
+FLASK_ENV = os.getenv("FLASK_ENV", "development")
 
 def validate_email(email):
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -29,23 +33,37 @@ def validate_password(password):
     return True
 
 @auth_bp.route('/csrf-token', methods=['GET'])
+@csrf.exempt
 def get_csrf_token():
     token = generate_csrf()
     response = make_response(jsonify({"csrfToken": token}))
-    response.set_cookie(
-        "XSRF-TOKEN",
-        token,
-        domain=".dratifshahzad.com",
-        secure=True,
-        httponly=False,
-        samesite="None",
-        max_age=3600,
-    )
+    
+    # use environment-specific cookie settings
+    if FLASK_ENV == "production":
+        response.set_cookie(
+            "csrf_access_token",
+            token,
+            domain=".dratifshahzad.com",
+            secure=True,
+            httponly=False,
+            samesite="None",
+            max_age=3600,
+        )
+    else:
+        response.set_cookie(
+            "csrf_access_token",
+            token,
+            secure=False,
+            httponly=False,
+            samesite="Lax",
+            max_age=3600,
+        )
+    
     return response
+
 
 @auth_bp.route('/register', methods=['POST'])
 @limiter.limit("10 per hour")
-@csrf.exempt
 def register():
     try:
         data = request.get_json()
@@ -103,10 +121,9 @@ def register():
         db.session.rollback()
         print(f"Registration error: {str(e)}")
         return jsonify({'error': 'Registration failed'}), 500
-    
+
 @auth_bp.route('/login', methods=['POST'])
 @limiter.limit("10 per hour")
-@csrf.exempt
 def login():
     try:
         data = request.get_json()
@@ -154,7 +171,7 @@ def login():
 def refresh():
     try:
         identity = get_jwt_identity()
-        jti = get_jwt()['jti'] # this is the current refresh token's jti
+        jti = get_jwt()['jti']
 
         token_in_db = RefreshToken.query.filter_by(jti=jti, revoked=False).first()
         if not token_in_db:
@@ -189,7 +206,7 @@ def refresh():
 
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
-@csrf.exempt
+@csrf.exempt  # ✅ OK - read-only, uses JWT
 def get_current_user():
     try:
         current_user_id = get_jwt_identity()
@@ -205,7 +222,6 @@ def get_current_user():
 
 @auth_bp.route('/change-password', methods=['POST'])
 @jwt_required()
-@csrf.exempt
 def change_password():
     try:
         current_user_id = get_jwt_identity()
@@ -236,7 +252,6 @@ def change_password():
 
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required(verify_type=False)
-@csrf.exempt
 def logout():
     try:
         jti = get_jwt()["jti"]
@@ -247,8 +262,6 @@ def logout():
             RefreshToken.query.filter_by(uid=int(identity), revoked=False).update({"revoked": True})
 
         db.session.add(TokenBlocklist(jti=jti))
-
-
         db.session.commit()
 
         response = make_response(jsonify({"message": "Logged out successfully"}), 200)
