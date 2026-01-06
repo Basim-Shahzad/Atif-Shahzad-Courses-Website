@@ -35,13 +35,16 @@ def create_app():
     # Environment-specific security
     if FLASK_ENV == "production":
         app.config['JWT_COOKIE_SECURE'] = True
-        app.config['JWT_COOKIE_SAMESITE'] = True
+        app.config['JWT_COOKIE_SAMESITE'] = "None"
+        app.config['JWT_COOKIE_DOMAIN'] = ".dratifshahzad.com"
+
+        # SESSION cookies (optional, not JWT)
         app.config['SESSION_COOKIE_DOMAIN'] = ".dratifshahzad.com"
         app.config['SESSION_COOKIE_SECURE'] = True
+
         allowed_origins = [
             "https://dratifshahzad.com",
             "https://www.dratifshahzad.com",
-            "https://api.dratifshahzad.com"
         ]
     else:
         app.config['JWT_COOKIE_SECURE'] = False
@@ -64,7 +67,7 @@ def create_app():
     db.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)
-    csrf.init_app(app)
+    # csrf.init_app(app)
     migrate.init_app(app, db)
     limiter.init_app(app)
 
