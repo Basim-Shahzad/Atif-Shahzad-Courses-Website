@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, make_response
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, jwt_required, 
-    get_jwt_identity, get_jwt, get_jti, set_access_cookies, set_refresh_cookies
+    get_jwt_identity, get_jwt, get_jti, set_access_cookies, set_refresh_cookies, unset_jwt_cookies
 )
 from app import db, bcrypt
 from app.models.User import User
@@ -9,8 +9,8 @@ from app.models.TokenBlackList import TokenBlocklist
 from app.models.RefreshToken import RefreshToken
 import re
 import os
-from flask_wtf.csrf import generate_csrf
-from app.services.extenstions import limiter, csrf
+# from flask_wtf.csrf import generate_csrf
+from app.services.extenstions import limiter
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -32,34 +32,34 @@ def validate_password(password):
         return False
     return True
 
-@auth_bp.route('/csrf-token', methods=['GET'])
-@csrf.exempt
-def get_csrf_token():
-    token = generate_csrf()
-    response = make_response(jsonify({"csrfToken": token}))
+# @auth_bp.route('/csrf-token', methods=['GET'])
+# @csrf.exempt
+# def get_csrf_token():
+#     token = generate_csrf()
+#     response = make_response(jsonify({"csrfToken": token}))
     
-    # use environment-specific cookie settings
-    if FLASK_ENV == "production":
-        response.set_cookie(
-            "csrf_access_token",
-            token,
-            domain=".dratifshahzad.com",
-            secure=True,
-            httponly=False,
-            samesite="None",
-            max_age=3600,
-        )
-    else:
-        response.set_cookie(
-            "csrf_access_token",
-            token,
-            secure=False,
-            httponly=False,
-            samesite="Lax",
-            max_age=3600,
-        )
+#     # use environment-specific cookie settings
+#     if FLASK_ENV == "production":
+#         response.set_cookie(
+#             "csrf_access_token",
+#             token,
+#             domain=".dratifshahzad.com",
+#             secure=True,
+#             httponly=False,
+#             samesite="None",
+#             max_age=3600,
+#         )
+#     else:
+#         response.set_cookie(
+#             "csrf_access_token",
+#             token,
+#             secure=False,
+#             httponly=False,
+#             samesite="Lax",
+#             max_age=3600,
+#         )
     
-    return response
+#     return response
 
 
 @auth_bp.route('/register', methods=['POST'])
@@ -166,7 +166,6 @@ def login():
 
 @auth_bp.route('/refresh', methods=['POST'])
 @limiter.limit("10 per hour")
-@csrf.exempt
 @jwt_required(refresh=True)
 def refresh():
     try:
@@ -206,7 +205,6 @@ def refresh():
 
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
-@csrf.exempt  # ✅ OK - read-only, uses JWT
 def get_current_user():
     try:
         current_user_id = get_jwt_identity()
@@ -267,6 +265,8 @@ def logout():
         response = make_response(jsonify({"message": "Logged out successfully"}), 200)
         response.set_cookie('access_token_cookie', '', expires=0)
         response.set_cookie('refresh_token_cookie', '', expires=0)
+
+        unset_jwt_cookies(response)
 
         return response
     

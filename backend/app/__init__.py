@@ -4,7 +4,7 @@ from datetime import timedelta
 import os
 import sys
 from dotenv import load_dotenv
-from app.services.extenstions import db, bcrypt, jwt, limiter, csrf
+from app.services.extenstions import db, bcrypt, jwt, limiter
 from flask_migrate import Migrate
 from app.models.TokenBlackList import TokenBlocklist
 
@@ -17,20 +17,32 @@ migrate = Migrate()
 def create_app():
     app = Flask(__name__)
 
+
     # Basic config
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
-    app.config['JWT_TOKEN_LOCATION'] = ['cookies']
-    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=15)
-    app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=7)
-    app.config['JWT_COOKIE_CSRF_PROTECT'] = True
-    app.config['JWT_ACCESS_CSRF_COOKIE_NAME'] = "csrf_access_token"
-    app.config['JWT_ACCESS_CSRF_HEADER_NAME'] = "X-CSRF-TOKEN"
-    app.config['JWT_ACCESS_COOKIE_NAME'] = 'access_token_cookie'
-    app.config['JWT_REFRESH_COOKIE_NAME'] = 'refresh_token_cookie'
-    app.config['JWT_CSRF_IN_COOKIES'] = True
+    app.config.update(
+        SECRET_KEY=os.environ["SECRET_KEY"],
+
+        SQLALCHEMY_DATABASE_URI=os.environ["DATABASE_URL"],
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
+
+        JWT_SECRET_KEY=os.environ["JWT_SECRET_KEY"],
+
+        JWT_TOKEN_LOCATION=["cookies"],
+        JWT_COOKIE_CSRF_PROTECT=True,
+        JWT_CSRF_IN_COOKIES=True,
+
+        JWT_ACCESS_COOKIE_NAME="access_token_cookie",
+        JWT_REFRESH_COOKIE_NAME="refresh_token_cookie",
+
+        JWT_ACCESS_CSRF_COOKIE_NAME="csrf_access_token",
+        JWT_REFRESH_CSRF_COOKIE_NAME="csrf_refresh_token",
+
+        JWT_ACCESS_CSRF_HEADER_NAME="X-CSRF-TOKEN",
+        JWT_REFRESH_CSRF_HEADER_NAME="X-CSRF-TOKEN",
+
+        JWT_ACCESS_TOKEN_EXPIRES=timedelta(minutes=30),
+        JWT_REFRESH_TOKEN_EXPIRES=timedelta(days=7),
+    )
 
     # Environment-specific security
     if FLASK_ENV == "production":
@@ -67,7 +79,6 @@ def create_app():
     db.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)
-    # csrf.init_app(app)
     migrate.init_app(app, db)
     limiter.init_app(app)
 
