@@ -10,25 +10,9 @@ export const AuthProvider = ({ children }) => {
    const [initializing, setInitializing] = useState(true);
    const [authLoading, setAuthLoading] = useState(false);
 
-   /* ---------------- CSRF TOKEN MANAGEMENT ---------------- */
-   const fetchCsrfToken = useCallback(async () => {
-      try {
-         await api.get("/csrf-token");
-         // Token is now in cookie, axios interceptor will read it
-         return true;
-      } catch (err) {
-         console.error("Failed to fetch CSRF token:", err);
-         return false;
-      }
-   }, [api]);
-
    /* ---------------- INIT ---------------- */
    const initAuth = useCallback(async () => {
       try {
-         // ✅ STEP 1: Get CSRF token first
-         await fetchCsrfToken();
-
-         // ✅ STEP 2: Then try to get user (if logged in)
          const res = await api.get("/me");
          setUser(res.data?.user || null);
       } catch {
@@ -36,7 +20,7 @@ export const AuthProvider = ({ children }) => {
       } finally {
          setInitializing(false);
       }
-   }, [api, fetchCsrfToken]);
+   }, [api]);
 
    useEffect(() => {
       initAuth();
@@ -47,9 +31,6 @@ export const AuthProvider = ({ children }) => {
       async (email, password) => {
          setAuthLoading(true);
          try {
-            // ✅ Ensure we have fresh CSRF token before login
-            await fetchCsrfToken();
-
             const res = await api.post("/login", { email, password });
             setUser(res.data.user);
             return { success: true };
@@ -60,16 +41,13 @@ export const AuthProvider = ({ children }) => {
             setAuthLoading(false);
          }
       },
-      [api, fetchCsrfToken]
+      [api],
    );
 
    const register = useCallback(
       async (data) => {
          setAuthLoading(true);
          try {
-            // ✅ Ensure we have fresh CSRF token before register
-            await fetchCsrfToken();
-
             const res = await api.post("/register", data);
             setUser(res.data.user);
             return { success: true };
@@ -80,7 +58,7 @@ export const AuthProvider = ({ children }) => {
             setAuthLoading(false);
          }
       },
-      [api, fetchCsrfToken]
+      [api],
    );
 
    const logout = useCallback(async () => {
@@ -88,7 +66,6 @@ export const AuthProvider = ({ children }) => {
       try {
          await api.post("/logout");
       } catch (err) {
-         // Logout can fail, but we still clear user
          console.error("Logout error:", err);
       } finally {
          setUser(null);
@@ -105,7 +82,7 @@ export const AuthProvider = ({ children }) => {
       }
    }, [api]);
 
-   /* ---------------- AXIOS 401 HANDLING ---------------- */
+   /* ---------------- 401 / REFRESH HANDLING ---------------- */
    useEffect(() => {
       let refreshing = false;
       let queue = [];
@@ -119,9 +96,6 @@ export const AuthProvider = ({ children }) => {
          (res) => res,
          async (error) => {
             const original = error.config;
-
-            // ✅ FIXED: Don't try to refresh if user is null (not logged in)
-            // Also skip retry for /me and /refresh endpoints themselves
             const isAuthEndpoint = original.url?.includes("/me") || original.url?.includes("/refresh");
 
             if (error.response?.status === 401 && !original._retry && !isAuthEndpoint && user) {
@@ -146,24 +120,26 @@ export const AuthProvider = ({ children }) => {
             }
 
             return Promise.reject(error);
-         }
+         },
       );
 
       return () => api.interceptors.response.eject(interceptor);
    }, [api, user]);
 
-   /* ---------------- AUTO TOKEN REFRESH ---------------- */
+   /* ---------------- AUTO REFRESH ---------------- */
    useEffect(() => {
       if (!user) return;
 
-      // ✅ Refresh access token every 25 minutes (before 30 min expiry)
-      const interval = setInterval(async () => {
-         try {
-            await api.post("/refresh");
-         } catch (err) {
-            console.warn("⚠️ Auto-refresh failed, user may need to re-login");
-         }
-      }, 25 * 60 * 1000); // 25 minutes
+      const interval = setInterval(
+         async () => {
+            try {
+               await api.post("/refresh");
+            } catch {
+               console.warn("Auto-refresh failed, user may need to re-login");
+            }
+         },
+         25 * 60 * 1000,
+      );
 
       return () => clearInterval(interval);
    }, [user, api]);
@@ -178,9 +154,8 @@ export const AuthProvider = ({ children }) => {
          register,
          logout,
          refreshUser,
-         fetchCsrfToken, // ✅ Export so components can manually refresh CSRF if needed
       }),
-      [user, initializing, authLoading, login, register, logout, refreshUser, fetchCsrfToken]
+      [user, initializing, authLoading, login, register, logout, refreshUser],
    );
 
    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
